@@ -41,12 +41,23 @@ public class TourGuideController {
         // The distance in miles between the user's location and each of the attractions.
         // The reward points for visiting each Attraction.
         //    Note: Attraction reward points can be gathered from RewardsCentral
-    @RequestMapping("/getNearbyAttractions") 
-    public List<Attraction> getNearbyAttractions(@RequestParam String userName) {
-    	VisitedLocation visitedLocation = tourGuideService.getUserLocation(getUser(userName));
-    	return tourGuideService.getNearByAttractions(visitedLocation);
+    @RequestMapping("/getNearbyAttractions")
+    public List<NearbyAttractionDTO> getNearbyAttractions(@RequestParam String userName) {
+        User user = getUser(userName);
+        VisitedLocation visitedLocation = tourGuideService.getUserLocation(user);
+        List<Attraction> attractions = tourGuideService.getNearByAttractions(visitedLocation);
+        return attractions.stream().map(a -> {
+            NearbyAttractionDTO dto = new NearbyAttractionDTO();
+            dto.attractionName = a.attractionName;
+            dto.attractionLat = a.latitude;
+            dto.attractionLon = a.longitude;
+            dto.userLat = visitedLocation.location.latitude;
+            dto.userLon = visitedLocation.location.longitude;
+            dto.distance = tourGuideService.getRewardsService().getDistance(a, visitedLocation.location);
+            dto.rewardPoints = tourGuideService.getRewardsService().getRewardPoints(a, user.getUserId());
+            return dto;
+        }).collect(java.util.stream.Collectors.toList());
     }
-    
     @RequestMapping("/getRewards") 
     public List<UserReward> getRewards(@RequestParam String userName) {
     	return tourGuideService.getUserRewards(getUser(userName));
