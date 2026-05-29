@@ -33,6 +33,10 @@ import tripPricer.TripPricer;
 import java.util.Comparator;
 import com.openclassrooms.tourguide.NearbyAttractionDTO;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 @Service
 public class TourGuideService {
 	private Logger logger = LoggerFactory.getLogger(TourGuideService.class);
@@ -41,6 +45,8 @@ public class TourGuideService {
 	private final TripPricer tripPricer = new TripPricer();
 	public final Tracker tracker;
 	boolean testMode = true;
+
+	private final ExecutorService executorService = Executors.newFixedThreadPool(1000);
 
 	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {
 		this.gpsUtil = gpsUtil;
@@ -163,6 +169,14 @@ public class TourGuideService {
 
 	public RewardsService getRewardsService() {
 		return rewardsService;
+	}
+
+	public void trackAllUsersLocation(List<User> users) {
+		List<CompletableFuture<Void>> futures = users.stream()
+				.map(user -> CompletableFuture.runAsync(() -> trackUserLocation(user), executorService))
+				.collect(Collectors.toList());
+
+		CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 	}
 
 }
